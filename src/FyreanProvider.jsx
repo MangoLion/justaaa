@@ -83,6 +83,7 @@ export const FyreanProvider = {
   supportedSizes: [
     { width: 512, height: 512 },
     { width: 1024, height: 1024 },
+    { width: 1536, height: 1536 },
     { width: 2048, height: 2048 }
   ],
   generationInputs: [

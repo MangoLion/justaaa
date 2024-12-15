@@ -214,25 +214,25 @@ const ImageDetailsModal = ({ selectedImage, setSelectedImage, setGenerationInput
             </div>
             
             <div className="w-1/3 bg-gray-100 dark:bg-gray-800 flex flex-col">
-              <div className="p-4 flex-grow flex flex-col min-h-0">
-                <h3 className="text-lg font-bold mb-2">Generation Parameters</h3>
-                <ScrollArea className="flex-grow">
-                  <div className="space-y-2 pr-4">
-                    {selectedImage && Object.entries(selectedImage.generationInputs).map(([key, value]) => (
-                      <div key={key}>
-                        <Label>{key}</Label>
-                        {isBase64Image(value) ? (
-                          <img src={value} alt={key} className="w-full h-auto mt-1" />
-                        ) : (
-                          <p className="text-sm text-muted-foreground break-words">
-                            {typeof value === 'object' ? JSON.stringify(value) : value.toString()}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+  <div className="p-4 flex-grow flex flex-col min-h-0">
+    <h3 className="text-lg font-bold mb-2">Generation Parameters</h3>
+    <ScrollArea className="flex-grow">
+      <div className="space-y-2 pr-4">
+        {selectedImage && Object.entries(selectedImage.generationInputs).map(([key, value]) => (
+          <div key={key}>
+            <Label>{key}</Label>
+            {isBase64Image(value) ? (
+              <img src={value} alt={key} className="w-full h-auto mt-1" />
+            ) : (
+              <p className="text-sm text-muted-foreground break-words">
+                {value === undefined ? 'undefined' : typeof value === 'object' ? JSON.stringify(value) : value.toString()}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
+  </div>
               
               <div className="p-4 border-t bg-gray-100 dark:bg-gray-800">
                 <div className="flex justify-end space-x-2">

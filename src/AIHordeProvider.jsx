@@ -1043,7 +1043,22 @@ export const AIHordeProvider = ({ inputs, setInputs, selectedModel, setSelectedM
         </TabsContent>
         
         <TabsContent value="advanced">
-          {renderAdvancedMode()}
+          {/* Before rendering advanced mode, parse the promptTemplate if it contains ### */}
+          {(() => {
+            // If coming from ExpressMode and promptTemplate contains ###, split it
+            if (inputs.promptTemplate && inputs.promptTemplate.includes('###')) {
+              const [positive, negative] = inputs.promptTemplate.split('###').map(p => p.trim());
+              // Update inputs with split prompts
+              setTimeout(() => {
+                setInputs(prev => ({
+                  ...prev,
+                  promptTemplate: positive,
+                  negativePrompt: negative || ''
+                }));
+              }, 0);
+            }
+            return renderAdvancedMode();
+          })()}
         </TabsContent>
       </Tabs>
 

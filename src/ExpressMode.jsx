@@ -91,8 +91,7 @@ const ExpressMode = ({ inputs, setInputs }) => {
   const handleStyleSelect = (styleName) => {
     const styleData = styles[styleName];
     if (!styleData) return;
-
-    // Convert style data to blueprint format
+  
     const blueprintData = {
       name: styleName,
       promptTemplate: styleData.prompt.replace('{p}', '<<PROMPT>>').replace('{np}', '<<NEGATIVE>>'),
@@ -102,39 +101,40 @@ const ExpressMode = ({ inputs, setInputs }) => {
     
     setBlueprint(blueprintData);
     
-    // Reset to default parameters then apply style parameters
-    const defaultParams = { ...DEFAULT_GEN_PARAMS };
-
-    // Process loras to ensure they have default values
+    // Create new default params excluding prompt fields
+    const { promptTemplate, negativePrompt, ...defaultParamsWithoutPrompts } = DEFAULT_GEN_PARAMS;
+  
     const processedLoras = styleData.loras?.map(lora => ({
       ...lora,
-      model: lora.model ?? 1, // Default to 1 if not specified
-      clip: lora.clip ?? 1, // Default to 1 if not specified
+      model: lora.model ?? 1,
+      clip: lora.clip ?? 1,
       is_version: lora.is_version ?? false
     })) || [];
-
-    // Process tis to ensure they have default values
+  
     const processedTis = styleData.tis?.map(ti => ({
       ...ti,
-      strength: ti.strength ?? 1 // Default to 1 if not specified
+      strength: ti.strength ?? 1
     })) || [];
-
+  
     const newInputs = {
-      ...defaultParams,
-      ...styleData,
-      width: styleData.width || defaultParams.width,
-      height: styleData.height || defaultParams.height,
-      seed: defaultParams.seed,
-      batchCount: defaultParams.batchCount,
-      model: styleData.model || defaultParams.model,
+      ...defaultParamsWithoutPrompts,
+      promptTemplate: inputs.promptTemplate,
+      negativePrompt: inputs.negativePrompt,
+      steps: styleData.steps ?? defaultParamsWithoutPrompts.steps,
+      width: styleData.width ?? defaultParamsWithoutPrompts.width,
+      height: styleData.height ?? defaultParamsWithoutPrompts.height,
+      cfgScale: styleData.cfg_scale ?? defaultParamsWithoutPrompts.cfgScale,
+      clipSkip: styleData.clip_skip ?? defaultParamsWithoutPrompts.clipSkip,
+      hiresFix: styleData.hires_fix ?? defaultParamsWithoutPrompts.hiresFix,
+      karras: styleData.karras ?? defaultParamsWithoutPrompts.karras,
+      sampler: styleData.sampler_name ?? defaultParamsWithoutPrompts.sampler,
+      model: styleData.model ?? defaultParamsWithoutPrompts.model,
       loras: processedLoras,
       tis: processedTis,
       selectedStyle: styleName
     };
     
     setInputs(newInputs);
-    setUserPrompt('');
-    setNegativePrompt('');
     setIsStylesDialogOpen(false);
   };
 
@@ -188,6 +188,16 @@ const ExpressMode = ({ inputs, setInputs }) => {
       }));
     }
   }, [blueprint, setInputs, userPrompt, negativePrompt]);
+
+  // Add effect to sync with Advanced mode prompts
+  // useEffect(() => {
+  //   if (inputs.promptTemplate && !inputs.promptTemplate.includes('<<PROMPT>>')) {
+  //     // If we have a promptTemplate that's not in Express format, it's from Advanced mode
+  //     const [positive, negative] = (inputs.promptTemplate + '###' + (inputs.negativePrompt || '')).split('###').map(p => p.trim());
+  //     setUserPrompt(positive);
+  //     setNegativePrompt(negative);
+  //   }
+  // }, [inputs.promptTemplate, inputs.negativePrompt]);
 
   const handleExampleChange = (value) => {
     setSelectedExample(value);
@@ -499,11 +509,11 @@ const ExpressMode = ({ inputs, setInputs }) => {
               <AlertDescription className="font-mono text-sm whitespace-pre-wrap">
                 {finalPrompt.slice(0, userPromptStart)}
                 <span className="font-semibold text-blue-800 dark:text-yellow-400">
-                {userPrompt}
+                {' '}{userPrompt}{' '}
                 </span>
                 {finalPrompt.slice(userPromptEnd, negativePromptStart)}
                 <span className="font-semibold text-red-800 dark:text-red-400">
-                {negativePrompt}
+                {' '}{negativePrompt}{' '}
                 </span>
                 {finalPrompt.slice(negativePromptEnd)}
               </AlertDescription>
