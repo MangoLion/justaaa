@@ -91,6 +91,21 @@ const ExpressMode = ({ inputs, setInputs }) => {
   const handleStyleSelect = (styleName) => {
     const styleData = styles[styleName];
     if (!styleData) return;
+
+    // Add {np} if not present
+    if (!styleData.prompt.includes('{np}')) {
+      styleData.prompt = `${styleData.prompt}###{np}`;
+    }
+
+    // Ensure ### separator exists between {p} and {np}
+    const pIndex = styleData.prompt.indexOf('{p}');
+    const npIndex = styleData.prompt.indexOf('{np}');
+    if (pIndex !== -1 && npIndex !== -1) {
+      const textBetween = styleData.prompt.substring(pIndex + 3, npIndex);
+      if (!textBetween.includes('###')) {
+        styleData.prompt = styleData.prompt.replace('{np}', '###{np}');
+      }
+    }
   
     const blueprintData = {
       name: styleName,
