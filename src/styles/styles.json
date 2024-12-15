@@ -2840,7 +2840,7 @@
         "clip_skip": 2
     },
     "ghibli solstice": {
-        "prompt": "{p} studio ghibli style art depicting lush green enviroment set during the summer solstice####{np}",
+        "prompt": "{p} studio ghibli style art depicting lush green environment set during the summer solstice####{np}",
         "model": "Stable Cascade 1.0",
         "steps": 15,
         "width": 1024,
