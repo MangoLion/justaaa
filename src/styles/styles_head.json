@@ -1,0 +1,39 @@
+{
+    "makoto birthday": {
+        "prompt": "{p}, (manga artwork:1.1), drawn by Makoto Shinkai, (birthday theme:1.3)###{np}, colorful,realistic, render, 3d, photographic",
+        "model": "AlbedoBase XL (SDXL)",
+        "width": 1024,
+        "height": 1024,
+        "steps": 8,
+        "cfg_scale": 2,
+        "sampler_name": "k_dpmpp_sde",
+        "loras": [
+            { "name": "247778", "is_version": true}
+        ]
+    },"cyberrealistic": {
+        "prompt": "{p}{np}",
+        "model": "CyberRealistic",
+        "tis": [
+            { "name": "77976","inject_ti": "negprompt"
+            }
+        ]
+    },"bweshmix": {
+        "prompt": "{p}###{np}, embedding:16993",
+        "model": "BweshMix",
+        "width": 704,
+        "height": 960,
+        "steps": 25,
+        "hires_fix": true,
+        "cfg_scale": 7.5,
+        "loras": [
+            { "name": "82098", "model": 0.5},
+            { "name": "221845", "model": 0.2},
+            { "name": "132532","model": -0.7
+            },
+            { "name": "58390", "model": 0.5}
+        ],
+        "tis": [
+            { "name": "16993"}
+        ]
+    },
+}
