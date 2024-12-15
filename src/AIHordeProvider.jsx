@@ -1160,7 +1160,7 @@ export const generateContent = async (apiKey, selectedModel, generationInputs) =
       height: generationInputs.height,
       steps: generationInputs.steps,
       seed: generationInputs.seed || undefined,
-      n: generationInputs.batchCount,
+      n: 1, //we dont handle batching from aihorde side
       post_processing: getPostProcessing(generationInputs),
       karras: generationInputs.karras,
       tiling: generationInputs.tiling,
