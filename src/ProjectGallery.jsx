@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ThemeProvider } from 'next-themes';
-import PocketBase from 'pocketbase';
 
 import ImageDetailsModal from './ImageDetailsModal';
 import ModelDetailsModal from './ModelDetailsModal';
@@ -29,7 +28,6 @@ import {
   extractWaitTime
 } from './components/gallery/utils';
 
-const pb = new PocketBase('https://fierylion.pockethost.io');
 const ALL_PROJECTS_ID = 'all';
 
 const ProjectGallery = () => {
@@ -105,32 +103,49 @@ const ProjectGallery = () => {
   }, []);
 
   // Save workspace on changes
-  useEffect(() => {
-    if (workspaceLoaded) {
-      const cleanProjects = projects.map(project => ({
-        ...project,
-        images: project.images.map(item => {
-          if (item.type === '3d') {
-            return {
-              ...item,
-              url: null
-            };
-          }
-          return item;
-        })
-      }));
-
-      saveToIndexedDB('currentWorkspace', {
-        projects: cleanProjects,
-        selectedProject,
-        generationInputs,
-        selected3DModel, // Updated name
-        starredImages,
-        selectedProvider,
-        selectedTask,
-      });
-    }
-  }, [projects, selectedProject, generationInputs, selected3DModel, starredImages, selectedProvider, selectedTask, workspaceLoaded]);
+    // Debounced workspace save
+    const saveWorkspaceDebounced = useCallback(
+      (() => {
+        let timeoutId = null;
+        return () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(async () => {
+            if (workspaceLoaded) {
+              const cleanProjects = projects.map(project => ({
+                ...project,
+                images: project.images.map(item => {
+                  if (item.type === '3d') {
+                    return {
+                      ...item,
+                      url: null
+                    };
+                  }
+                  return item;
+                })
+              }));
+  
+              await saveToIndexedDB('currentWorkspace', {
+                projects: cleanProjects,
+                selectedProject,
+                generationInputs,
+                selected3DModel,
+                starredImages,
+                selectedProvider,
+                selectedTask,
+              });
+            }
+          }, 2000); // 1 second debounce delay
+        };
+      })(),
+      [projects, selectedProject, generationInputs, starredImages, selectedProvider, selectedTask, workspaceLoaded]
+    );
+  
+    // Save workspace on changes
+    useEffect(() => {
+      saveWorkspaceDebounced();
+      // Cleanup function to clear any pending timeouts
+      return () => saveWorkspaceDebounced.cancel?.();
+    }, [projects, selectedProject, generationInputs, starredImages, selectedProvider, selectedTask, workspaceLoaded]);
 
   // Load API keys and set current key
   useEffect(() => {

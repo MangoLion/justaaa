@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Play, List, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, List, HelpCircle, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
@@ -6,9 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '../../components/ui/switch';
 import { Slider } from '../../components/ui/slider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
+import { useToast } from "../../hooks/use-toast";
 import ThemeToggle from './ThemeToggle';
 import GenerationControls from './GenerationControls';
 import { useState } from 'react';
+import { DEFAULT_GEN_PARAMS } from '@/AIHordeProvider';
 
 const GenerationPanel = ({
   isOpen,
@@ -29,6 +31,7 @@ const GenerationPanel = ({
   onTaskChange
 }) => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const tasks = [
     'Text to Image',
@@ -63,6 +66,80 @@ const GenerationPanel = ({
     if (!newProviders.find(p => p.value === selectedProvider)) {
       // If current provider not available in new task, select first available
       onProviderChange(newProviders[0]?.value || '');
+    }
+  };
+
+  const handleResetParameters = () => {
+    switch (selectedProvider) {
+      case 'aihorde':
+        console.log(DEFAULT_GEN_PARAMS)
+        setGenerationInputs(DEFAULT_GEN_PARAMS);
+        setSelectedModel('');
+        toast({
+          title: "Parameters Reset",
+          description: "AI Horde parameters have been reset to default values.",
+        });
+        break;
+
+      case 'deepinfra':
+        setGenerationInputs({
+          promptTemplate: '',
+          numInferenceSteps: 1,
+          width: 1024,
+          height: 1024,
+          seed: '',
+          batchCount: 1,
+          guidanceScale: 7.5
+        });
+        setSelectedModel('black-forest-labs/FLUX-1-schnell');
+        toast({
+          title: "Parameters Reset",
+          description: "DeepInfra parameters have been reset to default values.",
+        });
+        break;
+
+      case 'huggingface':
+        setGenerationInputs({
+          promptTemplate: '',
+          guidanceScale: 7.5,
+          numInferenceSteps: 50,
+          width: 512,
+          height: 512,
+          seed: '',
+          batchCount: 1,
+          negativePrompt: ''
+        });
+        setSelectedModel('');
+        toast({
+          title: "Parameters Reset",
+          description: "HuggingFace parameters have been reset to default values.",
+        });
+        break;
+
+      case 'fyrean':
+        setGenerationInputs({
+          seed: '',
+          ss_guidance_strength: 7.5,
+          ss_sampling_steps: 12,
+          slat_guidance_strength: 3.0,
+          slat_sampling_steps: 12,
+          mesh_simplify: 0.95,
+          texture_size: 1024,
+          apiUrl: 'https://trellis.fyrean.com'
+        });
+        toast({
+          title: "Parameters Reset",
+          description: "Fyrean parameters have been reset to default values.",
+        });
+        break;
+
+      default:
+        toast({
+          title: "Error",
+          description: "No provider selected.",
+          variant: "destructive",
+        });
+        break;
     }
   };
 
@@ -206,6 +283,9 @@ const GenerationPanel = ({
     }
   };
 
+  // Check if we're in Express Mode
+  const isExpressMode = selectedProvider === 'aihorde' && generationInputs.selectedStyle;
+
   return (
     <div className={`bg-gray-200 dark:bg-gray-900 transition-all duration-300 flex flex-col
       ${isOpen ? 'landscape:w-1/2 h-screen' : 'landscape:w-1/4 landscape:h-screen portrait:h-10'}
@@ -285,7 +365,18 @@ const GenerationPanel = ({
 
             {renderProviderControls()}
           </div>
+          {!isExpressMode && (
+            <Button 
+              onClick={handleResetParameters}
+              variant="outline"
+              className="w-full"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset Parameters
+            </Button>
+          )}
         </div>
+
       </div>
     </div>
   );
