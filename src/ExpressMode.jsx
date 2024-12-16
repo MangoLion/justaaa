@@ -189,6 +189,7 @@ const ExpressMode = ({ inputs, setInputs }) => {
   const handlePromptChange = useCallback((newPrompt, newNegative) => {
     const updatedPrompt = newPrompt ?? userPrompt;
     const updatedNegative = newNegative ?? negativePrompt;
+
     
     setUserPrompt(updatedPrompt);
     setNegativePrompt(updatedNegative);
@@ -201,6 +202,7 @@ const ExpressMode = ({ inputs, setInputs }) => {
         ...prev,
         promptTemplate: fullPrompt
       }));
+
     }
   }, [blueprint, setInputs, userPrompt, negativePrompt]);
 
@@ -446,6 +448,8 @@ const ExpressMode = ({ inputs, setInputs }) => {
     .replace('<<NEGATIVE>>', negativePrompt);
   const userPromptStart = finalPrompt.indexOf(userPrompt);
   const userPromptEnd = userPromptStart + userPrompt.length;
+
+  
   const negativePromptStart = finalPrompt.indexOf(negativePrompt);
   const negativePromptEnd = negativePromptStart + negativePrompt.length;
 
@@ -522,15 +526,16 @@ const ExpressMode = ({ inputs, setInputs }) => {
           <CollapsibleContent>
             <Alert className="mt-2">
               <AlertDescription className="font-mono text-sm whitespace-pre-wrap">
-                {finalPrompt.slice(0, userPromptStart)}
+              {finalPrompt.slice(0, userPromptStart)}
                 <span className="font-semibold text-blue-800 dark:text-yellow-400">
                 {' '}{userPrompt}{' '}
                 </span>
-                {finalPrompt.slice(userPromptEnd, negativePromptStart)}
+                {negativePrompt&&
+                <>{finalPrompt.slice(userPromptEnd, negativePromptStart)}
                 <span className="font-semibold text-red-800 dark:text-red-400">
                 {' '}{negativePrompt}{' '}
                 </span>
-                {finalPrompt.slice(negativePromptEnd)}
+                {finalPrompt.slice(negativePromptEnd)}</>}
               </AlertDescription>
             </Alert>
           </CollapsibleContent>
