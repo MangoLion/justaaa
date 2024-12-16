@@ -6,7 +6,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useState } from 'react';
 
 const providerDescriptions = {
-  aihorde: "By default, use the public community key! (It should be loaded with kudos, hopefully)",
+  aihorde: "By default, use the public community key! (It should be loaded with kudos, hopefully). Make sure its set to 'communitykey'",
   huggingface: "Create a free HF account. You get about 200 free H100 GPU seconds a day",
   fyrean: "Free provider, self hosted by some random dude"
 };

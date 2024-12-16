@@ -1223,8 +1223,12 @@ export const generateContent = async (apiKey, selectedModel, generationInputs) =
     payload.params.tis = generationInputs.tis;
   }
 
-  // Make the API request
-  const response = await fetch('https://aihorde.net/api/v2/generate/async', {
+  // Determine which URL to use based on the API key
+  const baseUrl = apiKey === 'communitykey' 
+    ? 'https://relay.fyrean.com/generate/async'  // relay worker URL
+    : 'https://aihorde.net/api/v2/generate/async';// Direct to AI Horde
+
+  const response = await fetch(baseUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

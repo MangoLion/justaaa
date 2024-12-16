@@ -50,7 +50,7 @@ const ProjectGallery = () => {
   const [selectedProvider, setSelectedProvider] = useState('aihorde');
   const [selectedTask, setSelectedTask] = useState('Text to Image');
   const [apiKeys, setApiKeys] = useState({
-    aihorde: '3ea60a2b' + '-' + '1ea4' + '-' +'4097'+'-'+'8405' + '-' + 'b5fd174a9383'
+    aihorde: 'communitykey'
   });
   const [currentApiKey, setCurrentApiKey] = useState('');
   const [workspaceLoaded, setWorkspaceLoaded] = useState(false);
@@ -63,6 +63,35 @@ const ProjectGallery = () => {
   const currentImages = selectedProject === ALL_PROJECTS_ID
     ? projects.flatMap(project => project.images)
     : projects.find(p => p.id === selectedProject)?.images || [];
+
+    // Check and update legacy community key
+    //previously the public aihorde apikey was directly embeded into the webapp but people abused this :c
+    useEffect(() => {
+      const checkAndUpdateCommunityKey = async () => {
+        const savedApiKeys = await getFromIndexedDB('apiKeys');
+        const legacyCommunityKey = '3ea60a2b-1ea4-4097-8405-b5fd174a9383';
+        
+        if (savedApiKeys?.aihorde === legacyCommunityKey) {
+          // Update the API key to use the new community key
+          const updatedApiKeys = {
+            ...savedApiKeys,
+            aihorde: 'communitykey'
+          };
+          
+          // Save the updated API keys
+          await saveToIndexedDB('apiKeys', updatedApiKeys);
+          setApiKeys(updatedApiKeys);
+          
+          // Notify the user
+          toast({
+            title: "API Key Updated",
+            description: "Your AI Horde API key has been updated to use the new community key system.",
+          });
+        }
+      };
+
+      checkAndUpdateCommunityKey();
+    }, []);
 
   // Load workspace on mount
   useEffect(() => {
