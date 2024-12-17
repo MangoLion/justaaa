@@ -118,11 +118,27 @@ def cleanup_old_files(directory: str, max_age_hours: int = 24):
     for filename in os.listdir(directory):
         filepath = os.path.join(directory, filename)
         if os.path.isfile(filepath):
-            if (current_time - os.path.getmtime(filepath)) > (max_age_hours * 3600):
-                try:
+            try:
+                # If file is older than max_age_hours or is a temporary file from a completed request
+                is_old = (current_time - os.path.getmtime(filepath)) > (max_age_hours * 3600)
+                is_completed_temp = any(
+                    req['trial_id'] in filename 
+                    for req in request_tracker.completed_requests
+                )
+                
+                if is_old or is_completed_temp:
                     os.remove(filepath)
-                except OSError:
-                    pass
+            except OSError:
+                pass
+
+def cleanup_request_files(trial_id: str):
+    """Clean up files associated with a specific request"""
+    for filename in os.listdir(TMP_DIR):
+        if trial_id in filename:
+            try:
+                os.remove(os.path.join(TMP_DIR, filename))
+            except OSError:
+                pass
 
 @app.on_event("startup")
 async def startup_event():
@@ -184,87 +200,98 @@ async def process_image(
     mesh_simplify: float = 0.95,
     texture_size: int = 1024
 ):
+    # Run cleanup before processing new image
+    cleanup_old_files(TMP_DIR)
+    
     # Read and process the uploaded image
     image = Image.open(file.file)
     trial_id, processed_image = preprocess_image(image)
     
-    # Add request to tracker and get queue info
-    request_info = request_tracker.add_request(trial_id, session_id)
-    estimated_wait = request_tracker.estimate_wait_time(request_info['queue_position'])
-    
-    # Generate 3D model
-    if randomize_seed:
-        seed = np.random.randint(0, MAX_SEED)
-    
-    request_tracker.start_processing(trial_id)
-    
-    outputs = pipeline.run(
-        processed_image,
-        seed=seed,
-        formats=["gaussian", "mesh"],
-        preprocess_image=False,
-        sparse_structure_sampler_params={
-            "steps": ss_sampling_steps,
-            "cfg_strength": ss_guidance_strength,
-        },
-        slat_sampler_params={
-            "steps": slat_sampling_steps,
-            "cfg_strength": slat_guidance_strength,
-        },
-    )
-    
-    # Generate preview video (no concatenation)
-    video = render_utils.render_video(outputs['gaussian'][0], num_frames=120)['color']
-    video_path = f"{TMP_DIR}/{trial_id}_preview.mp4"
-    imageio.mimsave(video_path, video, fps=15)
-    
-    # Generate GLB
-    glb_path = f"{TMP_DIR}/{trial_id}.glb"
-    glb = postprocessing_utils.to_glb(
-        outputs['gaussian'][0], 
-        outputs['mesh'][0], 
-        simplify=mesh_simplify, 
-        texture_size=texture_size, 
-        verbose=False
-    )
-    glb.export(glb_path)
-    
-    # Pack state and mark request as complete
-    state = pack_state(outputs['gaussian'][0], outputs['mesh'][0], trial_id)
-    
-    # Save state file (might be useful for debugging)
-    with open(f"{TMP_DIR}/{trial_id}_state.json", 'w') as f:
-        json.dump(state, f)
-    
-    # Read files as bytes
-    with open(video_path, 'rb') as f:
-        preview_bytes = f.read()
-    with open(glb_path, 'rb') as f:
-        glb_bytes = f.read()
-    
-    result = {
-        "trial_id": trial_id,
-        "preview_video": preview_bytes,
-        "glb_model": glb_bytes,
-        "queue_info": {
-            "position": request_info['queue_position'],
-            "estimated_wait_seconds": estimated_wait
-        }
-    }
-    
-    request_tracker.complete_request(trial_id, result)
-    
-    return JSONResponse(
-        content={
+    try:
+        # Add request to tracker and get queue info
+        request_info = request_tracker.add_request(trial_id, session_id)
+        estimated_wait = request_tracker.estimate_wait_time(request_info['queue_position'])
+        
+        # Generate 3D model
+        if randomize_seed:
+            seed = np.random.randint(0, MAX_SEED)
+        
+        request_tracker.start_processing(trial_id)
+        
+        outputs = pipeline.run(
+            processed_image,
+            seed=seed,
+            formats=["gaussian", "mesh"],
+            preprocess_image=False,
+            sparse_structure_sampler_params={
+                "steps": ss_sampling_steps,
+                "cfg_strength": ss_guidance_strength,
+            },
+            slat_sampler_params={
+                "steps": slat_sampling_steps,
+                "cfg_strength": slat_guidance_strength,
+            },
+        )
+        
+        # Generate preview video (no concatenation)
+        video = render_utils.render_video(outputs['gaussian'][0], num_frames=120)['color']
+        video_path = f"{TMP_DIR}/{trial_id}_preview.mp4"
+        imageio.mimsave(video_path, video, fps=15)
+        
+        # Generate GLB
+        glb_path = f"{TMP_DIR}/{trial_id}.glb"
+        glb = postprocessing_utils.to_glb(
+            outputs['gaussian'][0], 
+            outputs['mesh'][0], 
+            simplify=mesh_simplify, 
+            texture_size=texture_size, 
+            verbose=False
+        )
+        glb.export(glb_path)
+        
+        # Pack state and mark request as complete
+        state = pack_state(outputs['gaussian'][0], outputs['mesh'][0], trial_id)
+        
+        # Save state file (might be useful for debugging)
+        with open(f"{TMP_DIR}/{trial_id}_state.json", 'w') as f:
+            json.dump(state, f)
+        
+        # Read files as bytes
+        with open(video_path, 'rb') as f:
+            preview_bytes = f.read()
+        with open(glb_path, 'rb') as f:
+            glb_bytes = f.read()
+        
+        result = {
             "trial_id": trial_id,
-            "preview_video_base64": preview_bytes.hex(),
-            "glb_model_base64": glb_bytes.hex(),
+            "preview_video": preview_bytes,
+            "glb_model": glb_bytes,
             "queue_info": {
                 "position": request_info['queue_position'],
                 "estimated_wait_seconds": estimated_wait
             }
         }
-    )
+        
+        request_tracker.complete_request(trial_id, result)
+        
+        # Clean up files for this request after processing
+        cleanup_request_files(trial_id)
+        
+        return JSONResponse(
+            content={
+                "trial_id": trial_id,
+                "preview_video_base64": preview_bytes.hex(),
+                "glb_model_base64": glb_bytes.hex(),
+                "queue_info": {
+                    "position": request_info['queue_position'],
+                    "estimated_wait_seconds": estimated_wait
+                }
+            }
+        )
+    except Exception as e:
+        # Clean up files in case of error
+        cleanup_request_files(trial_id)
+        raise e
 
 @app.get("/health")
 async def health_check():
